@@ -1,0 +1,8 @@
+{
+  "files": {
+    "package.json": "./",
+    "plugin-tailwind.ts": "./",
+    "tailwind.config.ts": "./"
+  },
+  "tailwind": true
+}
