@@ -25,7 +25,8 @@
     "build": "rm -rf dist && npx tsx src/cli.ts build",
     "lint": "eslint ./src --ext .ts --config .eslintrc",
     "lint:fix": "npm run lint -- --fix",
-    "lint:beautify": "npm run lint:fix && prettier ./src --write"
+    "lint:beautify": "npm run lint:fix && prettier ./src --write",
+    "release": "npx @futura-dev/cosmodrome release"
   },
   "dependencies": {
     "@commitlint/config-conventional": "^17.6.3",

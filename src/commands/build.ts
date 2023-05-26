@@ -112,7 +112,7 @@ export const build = async (): Promise<void> => {
   const srcDir = "./src";
   const distDir = `${initWithDotSlash(tsConfig.compilerOptions.outDir)}`;
 
-  const compilerOptions: ts.CompilerOptions = tsConfig.compilerOptions;
+  const compilerOptions: ts.CompilerOptions = ts.convertCompilerOptionsFromJson(tsConfig.compilerOptions, '').options;
 
   // Create the output directory if it doesn't exist
   if (!fs.existsSync(distDir)) {
@@ -157,25 +157,26 @@ export const build = async (): Promise<void> => {
 
   // Copy files to the output directory
   for (const source of Object.keys(configuration.files)) {
-    if (!fs.existsSync(source) || fs.lstatSync(source).isDirectory()) {
+    if (!fs.existsSync(source)) {
       throw new Error(
-        `🧨⚠️💣 Source ${source} does not exist or is a directory`
+        `🧨⚠️💣 Source ${source} does not exist`
       );
     }
 
     const destination = `${distDir}/${configuration.files[source]}`;
     const sourceFileName = source.split("/").pop();
 
-    const { fileName: destinationDileName, directory } =
+    const { fileName: destinationFileName, directory } =
       pathToWriteOptions(destination);
-
-    fs.mkdirSync(directory, { recursive: true });
 
     fs.cpSync(
       source,
-      destinationDileName
-        ? `${directory}/${destinationDileName}`
-        : `${directory}/${sourceFileName}`
+      destinationFileName
+        ? `${directory}/${destinationFileName}`
+        : `${directory}/${sourceFileName}`,
+      {
+        recursive: true
+      }
     );
   }
 
