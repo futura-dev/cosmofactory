@@ -1,6 +1,6 @@
 {
   "name": "@futura-dev/cosmofactory",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "repository": {
     "type": "git",
@@ -23,10 +23,10 @@
   },
   "scripts": {
     "build": "rm -rf dist && npx tsx src/cli.ts build",
+    "release": "cosmodrome release",
     "lint": "eslint ./src --ext .ts --config .eslintrc",
     "lint:fix": "npm run lint -- --fix",
-    "lint:beautify": "npm run lint:fix && prettier ./src --write",
-    "release": "npx @futura-dev/cosmodrome release"
+    "lint:beautify": "npm run lint:fix && prettier ./src --write"
   },
   "dependencies": {
     "@commitlint/config-conventional": "^17.6.3",
