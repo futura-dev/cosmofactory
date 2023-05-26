@@ -1,32 +1,22 @@
-import { spawnSync } from "child_process";
-import { ParamsOf } from "./types";
-import prompts from "prompts";
-import * as querystring from "querystring";
-import { read } from "fs";
+import { spawnSync } from 'child_process';
+import { ParamsOf } from './types';
+import prompts from 'prompts';
 
 /**
  * controlledSpawn
  * @param params
  */
 export const controlledSpawn = (...params: ParamsOf<typeof spawnSync>) => {
-  params[2] && !params[2].encoding && (params[2].encoding = "utf8");
+  params[2] && !params[2].encoding && (params[2].encoding = 'utf8');
   const output = spawnSync(...params);
   if (output.status !== 0) {
     console.log(output.error);
-    console.log(output.stdout?.toString() ?? "");
+    console.log(output.stdout?.toString() ?? '');
     console.log(output);
     throw new Error(output.stderr.toString());
   }
 
   return output.stdout.toString();
-};
-
-/**
- * isArray
- * @param source
- */
-export const isArray = (source: any): source is Array<any> => {
-  return Array.isArray(source);
 };
 
 /**
@@ -40,8 +30,8 @@ export const ask = async <T extends string = string>(
 ): Promise<prompts.Answers<T>> => {
   return prompts(questions, {
     ...options,
-    onCancel: (...args) => {
+    onCancel: () => {
       process.exit(0);
-    },
+    }
   });
 };

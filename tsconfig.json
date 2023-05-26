@@ -8,9 +8,10 @@
     "strict": true,
     "target": "esnext",
     "resolveJsonModule": true,
-    "esModuleInterop": true
-  },
-  "exclude": [
-    "templates"
-  ]
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }

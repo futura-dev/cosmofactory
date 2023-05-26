@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { ask } from "../utils/functions";
+import { ask } from "@/utils/functions";
 
 export const init = async (): Promise<void> => {
   let does_override = true;
@@ -12,7 +12,7 @@ export const init = async (): Promise<void> => {
         message:
           ".cosmofactory configuration file already exists, do you want to override it ?",
         active: "yes",
-        inactive: "no",
+        inactive: "no"
       })
     ).does_override;
   }
@@ -26,9 +26,9 @@ export const init = async (): Promise<void> => {
           files: {
             "package.json": "./",
             "plugin-tailwind.ts": "./",
-            "tailwind.config.ts": "./",
+            "tailwind.config.ts": "./"
           },
-          tailwind: true,
+          tailwind: true
         },
         null,
         2

@@ -1,117 +1,96 @@
 import * as fs from "fs";
 import * as path from "path";
-import tsConfig from "../config/tsconfig.base.json";
 import ts from "typescript";
 import { spawnSync } from "child_process";
 import { cosmofactory_config_schema } from "../utils/validation/cosmofactory-config";
 
-export const build = async (): Promise<void> => {
-  /**
-   * Returns a list of all files in the subdirectories of the given directory.
-   */
-  const getFilesRecursive = (
-    dir: string,
-    baseDir = "",
-    extensions = ["ts", "tsx"],
-    where = "src"
-  ): string[] => {
-    const files: string[] = [];
+/**
+ *
+ * @param path
+ */
+const getNormalizedPath = (path = "") =>
+  path.replace(/\/\.$/g, "").replace(/\/$/g, "");
 
-    fs.readdirSync(dir).forEach((file) => {
-      const filePath = path.join(dir, file);
-      const stat = fs.statSync(filePath);
-      const isExtensionMatched = extensions.reduce((acc, ext) => {
-        return acc || file.endsWith(ext);
-      }, false);
+/**
+ *
+ * @param path
+ */
+const isFile = (path = "") => {
+  const normalizedPath = getNormalizedPath(path);
+  return (
+    normalizedPath.includes(".") &&
+    normalizedPath.charAt(normalizedPath.length - 1) !== "."
+  );
+};
 
-      if (stat.isDirectory()) {
-        const newBaseDir = path.join(baseDir, file);
-        files.push(
-          ...getFilesRecursive(filePath, newBaseDir, extensions, where)
-        );
-      } else if (stat.isFile() && isExtensionMatched) {
-        const relativeDir = baseDir ? path.join(baseDir, file) : file;
-        files.push(`${dirname}/../${where}/${relativeDir}`);
-      }
-    });
+/**
+ * Function that parse a path to create a standard string representing the path
+ * actions:
+ * - './' for empty path
+ * - '/' at the end of the path
+ * @param path - path to standardize
+ */
+const standardizePath = (path: string | undefined) => {
+  if (path === undefined) path = "";
+  let str = [".", ""].includes(path) ? "./" : path;
+  if (str.charAt(str.length - 1) !== "/") str += "/";
+  return str;
+};
 
-    return files;
-  };
+const initWithDotSlash = (path: string) => {
+  return /^\.\//g.test(path) ? path : `./${path}`;
+};
 
-  const standardizePath = (path: string | undefined) => {
-    if (path === undefined) path = "";
-    let str = [".", ""].includes(path) ? "./" : path;
-    if (str.charAt(str.length - 1) !== "/") str += "/";
-    return str;
-  };
+/**
+ * Function that recursively find the path of file with the given extension
+ * @param where - the folder to use as root of search
+ * @param extensions - an array of extensions without . character
+ */
+const getFilesRecursive = (
+  where: string,
+  extensions = ["ts", "tsx"]
+): string[] => {
+  // pool to contain files
+  const files: string[] = [];
 
-  /**
-   * Replaces absolute paths with relative paths in the generated JavaScript files.
-   */
-  const replaceAbsolutePaths = () => {
-    const jsFiles = getFilesRecursive(distDir, "", ["js"], "dist").filter(
-      (file) => file.endsWith(".js")
-    );
+  fs.readdirSync(where).forEach(file => {
+    const filePath = path.join(where, file);
+    const stat = fs.statSync(filePath);
 
-    jsFiles.forEach((jsFile) => {
-      const filePath = path.join(jsFile);
-      const fileContent = fs.readFileSync(filePath, "utf8");
-      const computedBaseUrl = standardizePath(compilerOptions.baseUrl);
-      const relative = new Array(
-        ...(jsFile.replace(distDir, "").match(/(\/)/g)?.slice(0, -1) ?? [])
-      ).reduce((acc) => {
-        return acc + "../";
-      }, "");
+    const isExtensionMatched = extensions.reduce((acc, ext) => {
+      return acc || file.endsWith(ext);
+    }, false);
 
-      const updatedContent = Object.entries(compilerOptions.paths ?? {}).reduce(
-        (content, [key, values]) => {
-          // TODO; implement fallback values
-          const replacementPath =
-            relative +
-            (computedBaseUrl + values[0])
-              .replace(/(.*)src\/(.*)/, "$2")
-              .replace("*", "");
-          const pattern = new RegExp(
-            `${key === "@/*" ? "@/" : key.replace("$/*", "")}/?(.*?)`,
-            "g"
-          );
-          return content.replace(pattern, `${replacementPath}$1`);
-        },
-        fileContent
-      );
-
-      fs.writeFileSync(filePath, updatedContent, "utf8");
-    });
-  };
-
-  // TODO: Check this function
-  const getNormalizedPath = (path = "") =>
-    path.replace(/\/\.$/g, "").replace(/\/$/g, "");
-
-  const isFile = (path = "") => {
-    const normalizedPath = getNormalizedPath(path);
-    return (
-      normalizedPath.includes(".") &&
-      normalizedPath.charAt(normalizedPath.length - 1) !== "."
-    );
-  };
-
-  const pathToWriteOptions = (path = "") => {
-    const normalizedPath = getNormalizedPath(path);
-    if (isFile(path)) {
-      const segmentedPath = normalizedPath.split("/");
-      return {
-        directory: segmentedPath.slice(0, segmentedPath.length - 1).join("/"),
-        fileName: segmentedPath.slice(-1)[0],
-      };
-    } else {
-      return {
-        directory: normalizedPath,
-        fileName: undefined,
-      };
+    if (stat.isDirectory()) {
+      files.push(...getFilesRecursive(filePath, extensions));
+    } else if (stat.isFile() && isExtensionMatched) {
+      files.push(`${filePath}`);
     }
-  };
+  });
 
+  return files;
+};
+
+const pathToWriteOptions = (path = "") => {
+  const normalizedPath = getNormalizedPath(path);
+  if (isFile(path)) {
+    const segmentedPath = normalizedPath.split("/");
+    return {
+      directory: segmentedPath.slice(0, segmentedPath.length - 1).join("/"),
+      fileName: segmentedPath.slice(-1)[0]
+    };
+  } else {
+    return {
+      directory: normalizedPath,
+      fileName: undefined
+    };
+  }
+};
+
+/**
+ *
+ */
+export const build = async (): Promise<void> => {
   // STEP 0
   // Load the configuration
   if (!fs.existsSync("./.cosmofactory.json")) {
@@ -120,38 +99,20 @@ export const build = async (): Promise<void> => {
     );
     process.exit(0);
   }
+  // validate the configuration
   const configuration = cosmofactory_config_schema.parse(
     JSON.parse(fs.readFileSync("./.cosmofactory.json", { encoding: "utf8" }))
   );
+  // load the tsconfig
+  const tsConfig = JSON.parse(
+    fs.readFileSync("./tsconfig.json", { encoding: "utf8" })
+  );
 
-  // Set the input and output directory paths
-  const dirname = __dirname;
+  // Set the input and output directory pathss
+  const srcDir = "./src";
+  const distDir = `${initWithDotSlash(tsConfig.compilerOptions.outDir)}`;
 
-  const srcDir = dirname + "/../src";
-  const distDir = dirname + "/../dist";
-
-  // TypeScript compilation options
-  const compilerOptions: ts.CompilerOptions = {
-    target: ts.ScriptTarget.ES5,
-    module: ts.ModuleKind.ESNext,
-    outDir: distDir,
-    declaration: true,
-    declarationDir: distDir,
-    baseUrl: tsConfig.compilerOptions.baseUrl,
-    paths: tsConfig.compilerOptions.paths,
-
-    /* Bundler mode */
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    resolveJsonModule: true,
-    isolatedModules: true,
-    jsx: ts.JsxEmit.ReactJSX,
-
-    /* Linting */
-    strict: true,
-    noUnusedLocals: true,
-    noUnusedParameters: true,
-    noFallthroughCasesInSwitch: true,
-  };
+  const compilerOptions: ts.CompilerOptions = tsConfig.compilerOptions;
 
   // Create the output directory if it doesn't exist
   if (!fs.existsSync(distDir)) {
@@ -160,21 +121,19 @@ export const build = async (): Promise<void> => {
 
   // Get the list of files in the input directory
   const files = getFilesRecursive(srcDir);
-
   // Configure the TypeScript program
   const program = ts.createProgram(files, compilerOptions);
 
-  // Run the compilation
+  // Run the transpiling
   const emitResult = program.emit();
-
   // Handle compilation errors
   const allDiagnostics = ts
     .getPreEmitDiagnostics(program)
     .concat(emitResult.diagnostics);
-  allDiagnostics.forEach((diagnostic) => {
-    if (diagnostic.file) {
+  allDiagnostics.forEach(diagnostic => {
+    if (diagnostic.file && diagnostic.start) {
       const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(
-        diagnostic.start!
+        diagnostic.start
       );
       const message = ts.flattenDiagnosticMessageText(
         diagnostic.messageText,
@@ -199,7 +158,9 @@ export const build = async (): Promise<void> => {
   // Copy files to the output directory
   for (const source of Object.keys(configuration.files)) {
     if (!fs.existsSync(source) || fs.lstatSync(source).isDirectory()) {
-      throw new Error("Source does not exist or is a directory");
+      throw new Error(
+        `🧨⚠️💣 Source ${source} does not exist or is a directory`
+      );
     }
 
     const destination = `${distDir}/${configuration.files[source]}`;
@@ -219,7 +180,40 @@ export const build = async (): Promise<void> => {
   }
 
   // Replace absolute paths to relative paths in the generated JavaScript files
-  replaceAbsolutePaths();
+  // TODO: check that
+  const jsFiles = getFilesRecursive(distDir, ["js"]).filter(file =>
+    file.endsWith(".js")
+  );
+
+  jsFiles.forEach(jsFile => {
+    const filePath = path.join(jsFile);
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const computedBaseUrl = standardizePath(compilerOptions.baseUrl);
+    const relative = new Array(
+      ...(jsFile.replace(distDir, "").match(/(\/)/g)?.slice(0, -1) ?? [])
+    ).reduce(acc => {
+      return acc + "../";
+    }, "");
+
+    const updatedContent = Object.entries(compilerOptions.paths ?? {}).reduce(
+      (content, [key, values]) => {
+        // TODO; implement fallback values
+        const replacementPath =
+          relative +
+          (computedBaseUrl + values[0])
+            .replace(/(.*)src\/(.*)/, "$2")
+            .replace("*", "");
+        const pattern = new RegExp(
+          `${key === "@/*" ? "@/" : key.replace("$/*", "")}/?(.*?)`,
+          "g"
+        );
+        return content.replace(pattern, `${replacementPath}$1`);
+      },
+      fileContent
+    );
+
+    fs.writeFileSync(filePath, updatedContent, "utf8");
+  });
 
   // manage tailwindss style
   if (configuration.tailwind) {
@@ -229,7 +223,7 @@ export const build = async (): Promise<void> => {
       "-o",
       `${distDir}/styles.min.css`,
       "build",
-      "--minify",
+      "--minify"
     ]);
   }
 };

@@ -1,4 +1,4 @@
-# Cosmofactory
+# 📦 Cosmofactory
 
 
 [![Version](https://img.shields.io/github/v/release/futura-dev/cosmofactory)](https://github.com/futura-dev/cosmofactory)

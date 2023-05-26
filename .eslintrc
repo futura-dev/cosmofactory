@@ -1,0 +1,5 @@
+{
+    "extends": [
+        "@futura-dev/typescript/.eslintrc.js"
+    ]
+}
