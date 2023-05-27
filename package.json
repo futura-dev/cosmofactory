@@ -40,7 +40,7 @@
   "devDependencies": {
     "@futura-dev/contributing-gen": "^2.0.14",
     "@futura-dev/cosmodrome": "^1.2.0",
-    "@futura-dev/cosmokeeper": "^0.1.0",
+    "@futura-dev/cosmokeeper": "^0.1.4",
     "@futura-dev/eslint-config-typescript": "^0.1.2",
     "@types/commander": "^2.12.2",
     "@types/mute-stream": "^0.0.1",
