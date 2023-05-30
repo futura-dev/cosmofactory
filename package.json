@@ -38,7 +38,7 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
-    "@futura-dev/contributing-gen": "^2.0.14",
+    "@futura-dev/contributing-gen": "^2.1.0",
     "@futura-dev/cosmodrome": "^1.2.0",
     "@futura-dev/cosmokeeper": "^0.1.0",
     "@futura-dev/eslint-config-typescript": "^0.1.2",
