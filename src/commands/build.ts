@@ -3,6 +3,7 @@ import * as path from "path";
 import ts from "typescript";
 import { spawnSync } from "child_process";
 import { cosmofactory_config_schema } from "../utils/validation/cosmofactory-config";
+import * as repl from "repl";
 
 /**
  *
@@ -208,7 +209,14 @@ export const build = async (): Promise<void> => {
           `${key === "@/*" ? "@/" : key.replace("$/*", "")}/?(.*?)`,
           "g"
         );
-        return content.replace(pattern, `${replacementPath}$1`);
+        return content.replace(
+          pattern,
+          `${
+            /^\.\//g.test(replacementPath)
+              ? replacementPath
+              : `./${replacementPath}`
+          }$1`
+        );
       },
       fileContent
     );
