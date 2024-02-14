@@ -3,7 +3,8 @@ import * as path from "path";
 import ts from "typescript";
 import { spawnSync } from "child_process";
 import { cosmofactory_config_schema } from "../utils/validation/cosmofactory-config";
-import * as repl from "repl";
+
+// TODO: skip comments in tsconfig.json
 
 /**
  *
@@ -46,10 +47,12 @@ const initWithDotSlash = (path: string) => {
  * Function that recursively find the path of file with the given extension
  * @param where - the folder to use as root of search
  * @param extensions - an array of extensions without . character
+ * @param exclude - an array of extensions to exclude
  */
 const getFilesRecursive = (
   where: string,
-  extensions = ["ts", "tsx"]
+  extensions = ["ts", "tsx"],
+  extensionsExcluded = [".stories.tsx"]
 ): string[] => {
   // pool to contain files
   const files: string[] = [];
@@ -62,9 +65,15 @@ const getFilesRecursive = (
       return acc || file.endsWith(ext);
     }, false);
 
+    const isExtensionExcluded = extensionsExcluded.reduce((acc, ext) => {
+      return acc || file.endsWith(ext);
+    }, false);
+
     if (stat.isDirectory()) {
-      files.push(...getFilesRecursive(filePath, extensions));
-    } else if (stat.isFile() && isExtensionMatched) {
+      files.push(
+        ...getFilesRecursive(filePath, extensions, extensionsExcluded)
+      );
+    } else if (stat.isFile() && isExtensionMatched && !isExtensionExcluded) {
       files.push(`${filePath}`);
     }
   });
@@ -113,7 +122,10 @@ export const build = async (): Promise<void> => {
   const srcDir = "./src";
   const distDir = `${initWithDotSlash(tsConfig.compilerOptions.outDir)}`;
 
-  const compilerOptions: ts.CompilerOptions = ts.convertCompilerOptionsFromJson(tsConfig.compilerOptions, '').options;
+  const compilerOptions: ts.CompilerOptions = ts.convertCompilerOptionsFromJson(
+    tsConfig.compilerOptions,
+    ""
+  ).options;
 
   // Create the output directory if it doesn't exist
   if (!fs.existsSync(distDir)) {
@@ -121,7 +133,11 @@ export const build = async (): Promise<void> => {
   }
 
   // Get the list of files in the input directory
-  const files = getFilesRecursive(srcDir);
+  const files = getFilesRecursive(
+    srcDir,
+    ["ts", "tsx"],
+    configuration.exclude.extensions
+  );
   // Configure the TypeScript program
   const program = ts.createProgram(files, compilerOptions);
 
@@ -159,9 +175,7 @@ export const build = async (): Promise<void> => {
   // Copy files to the output directory
   for (const source of Object.keys(configuration.files)) {
     if (!fs.existsSync(source)) {
-      throw new Error(
-        `🧨⚠️💣 Source ${source} does not exist`
-      );
+      throw new Error(`🧨⚠️💣 Source ${source} does not exist`);
     }
 
     const destination = `${distDir}/${configuration.files[source]}`;
@@ -183,9 +197,11 @@ export const build = async (): Promise<void> => {
 
   // Replace absolute paths to relative paths in the generated JavaScript files
   // TODO: check that
-  const jsFiles = getFilesRecursive(distDir, ["js"]).filter(file =>
-    file.endsWith(".js")
-  );
+  const jsFiles = getFilesRecursive(
+    distDir,
+    ["js"],
+    configuration.exclude.extensions
+  ).filter(file => file.endsWith(".js"));
 
   jsFiles.forEach(jsFile => {
     const filePath = path.join(jsFile);

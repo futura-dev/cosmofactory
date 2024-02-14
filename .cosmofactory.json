@@ -2,5 +2,8 @@
   "files": {
     "package.json": "./"
   },
-  "tailwind": false
+  "tailwind": false,
+  "exclude": {
+    "extensions": []
+  }
 }
