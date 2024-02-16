@@ -138,6 +138,8 @@ export const build = async (): Promise<void> => {
     ["ts", "tsx"],
     configuration.exclude.extensions
   );
+  // Get the list of css files
+  const cssFiles = getFilesRecursive(srcDir, ["css"], []);
   // Configure the TypeScript program
   const program = ts.createProgram(files, compilerOptions);
 
@@ -173,6 +175,10 @@ export const build = async (): Promise<void> => {
   }
 
   // Copy files to the output directory
+  cssFiles.forEach(cssFile => {
+    const path = cssFile.replace(/^(\.\/)?src\//, "");
+    configuration.files[cssFile] = `${path}`;
+  });
   for (const source of Object.keys(configuration.files)) {
     if (!fs.existsSync(source)) {
       throw new Error(`🧨⚠️💣 Source ${source} does not exist`);
